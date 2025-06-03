@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>🔮 GOGEN CRYSTAL - 語源学習ゲーム</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Arial', sans-serif;
+            cursor: pointer;
+            touch-action: none;
+            width: 100%;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+            padding: 20px 16px 16px 16px;
+        }
+        
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            width: calc(100% - 32px);
+            max-width: 768px;
+            margin: 16px 16px 24px 16px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(145deg, #ffffff, #f0f3f7);
+            border-radius: 10px;
+            padding: 6px 4px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+            border: 1px solid rgba(255,255,255,0.3);
+            text-align: center;
+            min-width: 50px;
+        }
+        
+        .stat-number {
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: bold;
+            color: #6c5ce7;
+            margin-bottom: 1px;
+        }
+        
+        .stat-label {
+            font-size: clamp(7px, 1.8vw, 9px);
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .score-card {
+            background: linear-gradient(145deg, #ffeaa7, #fdcb6e);
+            border: 1px solid #e17055;
+        }
+        
+        .score-card .stat-number {
+            color: #d63031;
+        }
+        
+        .score-card .stat-label {
+            color: #2d3436;
+        }
+        
+        canvas {
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+            cursor: pointer;
+            touch-action: none;
+            margin: 16px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid rgba(255,255,255,0.3);
+            flex-shrink: 0;
+        }
+        
+        .etymology-panel {
+            background: linear-gradient(145deg, #ffffff, #f8f9fb);
+            padding: 16px;
+            border-radius: 20px;
+            border: 2px solid #a29bfe;
+            width: calc(100% - 32px);
+            max-width: 768px;
+            box-shadow: 0 10px 25px rgba(162, 155, 254, 0.15);
+            margin: 16px 16px 16px 16px;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        
+        .etymology-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #fd79a8, #fdcb6e, #55efc4, #74b9ff, #a29bfe);
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .etymology-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .etymology-title {
+            color: #6c5ce7;
+            font-size: clamp(14px, 3.5vw, 18px);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .hint-button {
+            background: linear-gradient(145deg, #fd79a8, #e84393);
+            border: none;
+            border-radius: 16px;
+            padding: 8px 16px;
+            color: white;
+            font-size: clamp(10px, 2.5vw, 12px);
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(253, 121, 168, 0.3);
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .hint-button::before {
+            content: '💡';
+            margin-right: 4px;
+        }
+        
+        .hint-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(253, 121, 168, 0.4);
+        }
+        
+        .hint-button:disabled {
+            background: linear-gradient(145deg, #ddd, #bbb);
+            color: #888;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        
+        .hint-button:disabled::before {
+            content: '🔒';
+        }
+        
+        .etymology-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .etymology-text {
+            color: #2d3436;
+            font-size: clamp(12px, 3vw, 14px);
+            line-height: 1.5;
+            background: rgba(116, 185, 255, 0.08);
+            padding: 12px;
+            border-radius: 12px;
+            border-left: 3px solid #74b9ff;
+        }
+        
+        .japanese-hint {
+            color: white;
+            font-size: clamp(12px, 3vw, 14px);
+            font-weight: bold;
+            padding: 12px;
+            background: linear-gradient(145deg, #55efc4, #00cec9);
+            border-radius: 12px;
+            margin-top: 8px;
+            box-shadow: 0 4px 12px rgba(85, 239, 196, 0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .japanese-hint::before {
+            content: '🎯 ';
+        }
+        
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 16px 24px;
+            border-radius: 18px;
+            color: #2d3436;
+            font-size: clamp(14px, 3.5vw, 18px);
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            max-width: 85vw;
+            min-width: 240px;
+            word-wrap: break-word;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        
+        .feedback.correct {
+            background: rgba(85, 239, 196, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 184, 148, 0.3);
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .feedback.incorrect {
+            background: rgba(253, 121, 168, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(232, 67, 147, 0.3);
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        
+        .word-selection-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        
+        .selection-title {
+            color: #6c5ce7;
+            font-size: clamp(24px, 6vw, 32px);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.3;
+            font-weight: bold;
+        }
+        
+        .selection-subtitle {
+            color: #74b9ff;
+            font-size: clamp(14px, 3.5vw, 18px);
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        
+        .part-of-speech-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .pos-button {
+            background: linear-gradient(145deg, #ffffff, #f1f3f4);
+            border: 2px solid rgba(108, 92, 231, 0.2);
+            border-radius: 18px;
+            padding: 20px 16px;
+            color: #2d3436;
+            font-size: clamp(14px, 3.5vw, 16px);
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pos-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #fd79a8, #fdcb6e, #55efc4, #74b9ff);
+            border-radius: 18px 18px 0 0;
+        }
+        
+        .pos-button:hover, .pos-button:active {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(108, 92, 231, 0.2);
+            border-color: #6c5ce7;
+        }
+        
+        .pos-emoji {
+            font-size: clamp(20px, 5vw, 24px);
+            margin-bottom: 6px;
+        }
+        
+        .pos-description {
+            font-size: clamp(10px, 2.5vw, 12px);
+            margin-top: 6px;
+            color: #636e72;
+            font-weight: 500;
+        }
+        
+        .dragging {
+            cursor: grabbing !important;
+        }
+        
+        /* タッチデバイス向け調整 */
+        @media (hover: none) and (pointer: coarse) {
+            .pos-button:hover {
+                transform: none;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            }
+            
+            .hint-button:hover {
+                transform: none;
+            }
+        }
+        
+        /* レスポンシブ調整 */
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 16px 12px 12px 12px;
+            }
+            
+            .header-stats {
+                gap: 4px;
+                margin: 12px 12px 20px 12px;
+                width: calc(100% - 24px);
+            }
+            
+            .stat-card {
+                padding: 5px 3px;
+                min-width: 45px;
+            }
+            
+            canvas {
+                margin: 12px 12px;
+            }
+            
+            .etymology-panel {
+                width: calc(100% - 24px);
+                margin: 12px 12px 12px 12px;
+                padding: 14px;
+            }
+        }
+        
+        /* アニメーション */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pos-button {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        .pos-button:nth-child(1) { animation-delay: 0.1s; }
+        .pos-button:nth-child(2) { animation-delay: 0.2s; }
+        .pos-button:nth-child(3) { animation-delay: 0.3s; }
+        .pos-button:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <!-- 品詞選択画面 -->
+    <div class="word-selection-screen" id="selectionScreen">
+        <div class="selection-title floating">
+            🔮 GOGEN CRYSTAL 🔮
+            <div class="selection-subtitle">学習する品詞を選んでね 💕</div>
+        </div>
+        <div class="part-of-speech-grid">
+            <div class="pos-button" onclick="selectPartOfSpeech('noun')">
+                <div class="pos-emoji">📚</div>
+                名詞 (Noun)
+                <div class="pos-description">物や人の名前</div>
+            </div>
+            <div class="pos-button" onclick="selectPartOfSpeech('adjective')">
+                <div class="pos-emoji">🌟</div>
+                形容詞 (Adjective)
+                <div class="pos-description">性質や状態を表す</div>
+            </div>
+            <div class="pos-button" onclick="selectPartOfSpeech('verb')">
+                <div class="pos-emoji">⚡</div>
+                動詞 (Verb)
+                <div class="pos-description">動作や状態を表す</div>
+            </div>
+            <div class="pos-button" onclick="selectPartOfSpeech('adverb')">
+                <div class="pos-emoji">🚀</div>
+                副詞 (Adverb)
+                <div class="pos-description">動作や状態の様子</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ヘッダーステータス（統合版） -->
+    <div class="header-stats">
+        <div class="stat-card">
+            <div class="stat-number" id="correct">0</div>
+            <div class="stat-label">正解</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="accuracy">-</div>
+            <div class="stat-label">正解率</div>
+        </div>
+        <div class="stat-card score-card">
+            <div class="stat-number" id="score">0</div>
+            <div class="stat-label">スコア</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="currentPOS">-</div>
+            <div class="stat-label">品詞</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number"><span id="questionNumber">1</span>/<span id="totalQuestions">0</span></div>
+            <div class="stat-label">問題</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="remainingCrystals">0</div>
+            <div class="stat-label">残り</div>
+        </div>
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="etymology-panel" id="etymologyPanel">
+            <div class="etymology-header">
+                <div class="etymology-title">
+                    🔍 この語源の単語は？
+                </div>
+                <button class="hint-button" id="hintButton" onclick="showHint()">
+                    ヒント (50点)
+                </button>
+            </div>
+            <div class="etymology-content">
+                <div class="etymology-text" id="etymologyText"></div>
+                <div class="japanese-hint" id="japaneseHint" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="feedback" id="feedback"></div>
+
+    <!-- 語源データファイルの読み込み -->
+    <script src="etymology-data.js"></script>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Web Audio API設定
+        let audioContext;
+        let masterGain;
+        let speechSynthesis = window.speechSynthesis;
+        let voiceVolume = 0.8;
+        let isMuted = false;
+        
+        // ゲーム状態
+        let gameState = 'selection';
+        let score = 0;
+        let correctAnswers = 0;
+        let totalAnswers = 0;
+        let currentPOS = '';
+        let selectedWords = [];
+        let currentQuestionIndex = 0;
+        let currentQuestion = null;
+        let crystals = [];
+        let shatterFragments = [];
+        
+        // ヒントシステム
+        let hintUsed = false;
+        let currentScoreValue = 100;
+        
+        // タッチ/マウス状態
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragThreshold = 5;
+        let draggedCrystal = null;
+        
+        // エフェクト配列
+        let particles = [];
+        let time = 0;
+        
+        // ゲーム設定
+        const CRYSTALS_COUNT = 10;
+        
+        // 高解像度対応の変数
+        let canvasScale = 1;
+        let pixelRatio = window.devicePixelRatio || 1;
+        
+        // 大幅に改善されたキャンバスサイズ設定
+        function setCanvasSize() {
+            const maxWidth = Math.min(window.innerWidth - 32, 768);
+            const maxHeight = Math.min(window.innerHeight - 160, 720); // 大幅に高さを増加
+            
+            let targetWidth, targetHeight;
+            const aspectRatio = 4 / 4; // より正方形に近いアスペクト比
+            
+            if (maxWidth / maxHeight > aspectRatio) {
+                targetHeight = maxHeight;
+                targetWidth = targetHeight * aspectRatio;
+            } else {
+                targetWidth = maxWidth;
+                targetHeight = targetWidth / aspectRatio;
+            }
+            
+            canvas.style.width = targetWidth + 'px';
+            canvas.style.height = targetHeight + 'px';
+            
+            canvasScale = pixelRatio;
+            canvas.width = targetWidth * canvasScale;
+            canvas.height = targetHeight * canvasScale;
+            
+            ctx.scale(canvasScale, canvasScale);
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            
+            if (crystals.length > 0) {
+                crystals.forEach(crystal => {
+                    crystal.x = Math.min(crystal.x, targetWidth - crystal.radius);
+                    crystal.y = Math.min(crystal.y, targetHeight - crystal.radius);
+                    crystal.x = Math.max(crystal.x, crystal.radius);
+                    crystal.y = Math.max(crystal.y, crystal.radius);
+                });
+            }
+        }
+        
+        // Web Audio API初期化
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.connect(audioContext.destination);
+                masterGain.gain.setValueAtTime(voiceVolume, audioContext.currentTime);
+            }
+        }
+        
+        // 配列をシャッフルする関数
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        // 品詞選択
+        function selectPartOfSpeech(pos) {
+            currentPOS = pos;
+            const allWords = Object.keys(etymologyDataByPOS[pos]).map(key => ({
+                word: key,
+                data: etymologyDataByPOS[pos][key]
+            }));
+            
+            const shuffledWords = shuffleArray(allWords);
+            selectedWords = shuffledWords.slice(0, Math.min(CRYSTALS_COUNT, shuffledWords.length));
+            
+            document.getElementById('selectionScreen').style.display = 'none';
+            gameState = 'playing';
+            
+            setCanvasSize();
+            resetGame();
+            createRandomCrystals();
+            startNewQuestion();
+            
+            updateUI();
+        }
+        
+        // ゲームリセット
+        function resetGame() {
+            score = 0;
+            correctAnswers = 0;
+            totalAnswers = 0;
+            currentQuestionIndex = 0;
+            particles = [];
+            shatterFragments = [];
+        }
+        
+        // ヒント表示
+        function showHint() {
+            if (hintUsed) return;
+            
+            hintUsed = true;
+            currentScoreValue = 50;
+            
+            const hintElement = document.getElementById('japaneseHint');
+            hintElement.textContent = `答え: ${currentQuestion.data.japanese}`;
+            hintElement.style.display = 'block';
+            
+            const hintButton = document.getElementById('hintButton');
+            hintButton.disabled = true;
+            hintButton.textContent = 'ヒント使用済み';
+        }
+        
+        // より大きく美しいクリスタル生成
+        function createRandomCrystals() {
+            crystals = [];
+            
+            const displayWidth = parseFloat(canvas.style.width);
+            const displayHeight = parseFloat(canvas.style.height);
+            
+            const colorPalettes = [
+                { hue: 340, sat: 85, light: 65 }, // ピンク
+                { hue: 210, sat: 90, light: 65 }, // ブルー
+                { hue: 160, sat: 85, light: 65 }, // グリーン
+                { hue: 45, sat: 90, light: 65 },  // オレンジ
+                { hue: 270, sat: 85, light: 65 }, // パープル
+                { hue: 190, sat: 85, light: 65 }, // シアン
+                { hue: 25, sat: 85, light: 65 },  // レッド
+                { hue: 290, sat: 85, light: 65 }, // マゼンタ
+                { hue: 120, sat: 85, light: 65 }, // ライムグリーン
+                { hue: 200, sat: 85, light: 65 }  // スカイブルー
+            ];
+            
+            selectedWords.forEach((wordData, index) => {
+                let x, y, attempts = 0;
+                const baseRadius = Math.min(displayWidth, displayHeight) * 0.13;
+                let radius = baseRadius + Math.random() * (baseRadius * 0.15);
+                
+                do {
+                    x = Math.random() * (displayWidth - radius * 2) + radius;
+                    y = Math.random() * (displayHeight - radius * 2) + radius;
+                    attempts++;
+                } while (attempts < 200 && crystals.some(crystal => {
+                    const dx = crystal.x - x;
+                    const dy = crystal.y - y;
+                    const minDistance = crystal.radius + radius + 18;
+                    return Math.sqrt(dx * dx + dy * dy) < minDistance;
+                }));
+                
+                const colorPalette = colorPalettes[index % colorPalettes.length];
+                
+                crystals.push({
+                    x: x,
+                    y: y,
+                    originalX: x,
+                    originalY: y,
+                    radius: radius,
+                    word: wordData.word,
+                    data: wordData.data,
+                    hue: colorPalette.hue,
+                    saturation: colorPalette.sat,
+                    lightness: colorPalette.light,
+                    glow: Math.random() * Math.PI * 2,
+                    sparkleTimer: Math.random() * 100,
+                    pulsePhase: Math.random() * Math.PI * 2,
+                    isHovered: false,
+                    isVisible: true,
+                    isDragging: false
+                });
+            });
+        }
+        
+        // 新しい問題開始
+        function startNewQuestion() {
+            if (currentQuestionIndex >= selectedWords.length) {
+                showGameComplete();
+                return;
+            }
+            
+            const questionData = selectedWords[currentQuestionIndex];
+            currentQuestion = questionData;
+            
+            hintUsed = false;
+            currentScoreValue = 100;
+            
+            document.getElementById('etymologyText').textContent = questionData.data.etymology;
+            document.getElementById('japaneseHint').style.display = 'none';
+            
+            const hintButton = document.getElementById('hintButton');
+            hintButton.disabled = false;
+            hintButton.textContent = 'ヒント (50点)';
+        }
+        
+        // 文字列を2行に分割
+        function splitWordIntoLines(word, maxLength) {
+            const actualMaxLength = window.innerWidth < 768 ? 8 : (maxLength || 10);
+            
+            if (word.length <= actualMaxLength) {
+                return [word];
+            }
+            
+            const hyphenIndex = word.indexOf('-');
+            if (hyphenIndex > 0 && hyphenIndex < word.length - 1) {
+                return [word.substring(0, hyphenIndex + 1), word.substring(hyphenIndex + 1)];
+            }
+            
+            const midPoint = Math.floor(word.length / 2);
+            return [word.substring(0, midPoint) + '-', word.substring(midPoint)];
+        }
+        
+        // クリスタルの境界チェック
+        function keepCrystalInBounds(crystal) {
+            const displayWidth = parseFloat(canvas.style.width);
+            const displayHeight = parseFloat(canvas.style.height);
+            const margin = crystal.radius;
+            
+            if (crystal.x < margin) crystal.x = margin;
+            if (crystal.x > displayWidth - margin) crystal.x = displayWidth - margin;
+            if (crystal.y < margin) crystal.y = margin;
+            if (crystal.y > displayHeight - margin) crystal.y = displayHeight - margin;
+        }
+        
+        // 正解時のガラス破砕音
+        function playCorrectGlassBreakSound() {
+            if (!audioContext || isMuted) return;
+            
+            const now = audioContext.currentTime;
+            
+            for (let i = 0; i < 8; i++) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+                
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(2500 + i * 600 + Math.random() * 400, now);
+                osc.frequency.exponentialRampToValueAtTime(4500 + i * 800, now + 0.08);
+                
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(3000 + i * 500, now);
+                filter.Q.setValueAtTime(15, now);
+                
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.start(now + i * 0.01);
+                osc.stop(now + 0.4);
+            }
+            
+            for (let i = 0; i < 5; i++) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1500 + i * 300, now + i * 0.05);
+                
+                gain.gain.setValueAtTime(0.1, now + i * 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.3);
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.start(now + i * 0.05);
+                osc.stop(now + i * 0.05 + 0.3);
+            }
+        }
+        
+        // 不正解時の音
+        function playIncorrectSound() {
+            if (!audioContext || isMuted) return;
+            
+            const now = audioContext.currentTime;
+            
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            const filter = audioContext.createBiquadFilter();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+            
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(400, now);
+            filter.Q.setValueAtTime(5, now);
+            
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+            
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+        
+        // 英語音声再生
+        function speakEnglish(text) {
+            if (isMuted || !speechSynthesis) return;
+            
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8;
+            utterance.pitch = 1.0;
+            utterance.volume = voiceVolume;
+            
+            const voices = speechSynthesis.getVoices();
+            
+            const preferredVoices = [
+                voice => voice.name === 'Samantha' && voice.lang === 'en-US',
+                voice => voice.name === 'Alex' && voice.lang === 'en-US',
+                voice => voice.name === 'Daniel' && voice.lang.startsWith('en-GB'),
+                voice => voice.name === 'Karen' && voice.lang.startsWith('en-AU'),
+                voice => voice.name.includes('Google US English') && voice.lang === 'en-US',
+                voice => voice.name.includes('Google UK English') && voice.lang === 'en-GB',
+                voice => voice.name.includes('Microsoft Zira') && voice.lang === 'en-US',
+                voice => voice.name.includes('Microsoft David') && voice.lang === 'en-US',
+                voice => voice.name.includes('English United States') && voice.lang === 'en-US',
+                voice => voice.lang === 'en-US' && voice.localService,
+                voice => voice.lang === 'en-GB' && voice.localService,
+                voice => voice.lang === 'en-AU' && voice.localService,
+                voice => voice.lang.startsWith('en-US'),
+                voice => voice.lang.startsWith('en-GB'),
+                voice => voice.lang.startsWith('en'),
+            ];
+            
+            let selectedVoice = null;
+            for (const voiceFilter of preferredVoices) {
+                selectedVoice = voices.find(voiceFilter);
+                if (selectedVoice) {
+                    break;
+                }
+            }
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            speechSynthesis.speak(utterance);
+        }
+        
+        // フィードバック表示（軽量化版）
+        function showFeedback(isCorrect, earnedScore) {
+            const feedback = document.getElementById('feedback');
+            feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            
+            if (isCorrect) {
+                feedback.innerHTML = `🎉 素晴らしい！ 🎉<br><span style="font-size: clamp(12px, 2.8vw, 14px); margin-top: 8px; display: inline-block;">+${earnedScore}点獲得！</span>`;
+            } else {
+                feedback.innerHTML = '🤔 惜しい！<br><span style="font-size: clamp(12px, 2.8vw, 14px); margin-top: 8px; display: inline-block;">もう一度挑戦してね</span>';
+            }
+            
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+                if (isCorrect) {
+                    nextQuestion();
+                }
+            }, 1500);
+        }
+        
+        // 次の問題
+        function nextQuestion() {
+            currentQuestionIndex++;
+            startNewQuestion();
+            updateUI();
+        }
+        
+        // ゲーム完了
+        function showGameComplete() {
+            const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+            
+            const feedback = document.getElementById('feedback');
+            feedback.className = 'feedback correct';
+            feedback.innerHTML = `
+                🎊 語源マスターに一歩近づいたね！ 🎊<br>
+                <div style="font-size: clamp(12px, 2.8vw, 14px); margin-top: 12px;">
+                    正解率: ${accuracy}%<br>
+                    総スコア: ${score}点
+                </div>
+            `;
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+                document.getElementById('selectionScreen').style.display = 'flex';
+                gameState = 'selection';
+            }, 4000);
+        }
+        
+        // 破片とエフェクトクラス
+        class ShatterFragment {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 20;
+                this.vy = (Math.random() - 0.5) * 20;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.3;
+                this.life = 1;
+                this.decay = Math.random() * 0.015 + 0.01;
+                this.color = color;
+                this.size = Math.random() * 15 + 5;
+                this.gravity = 0.5;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += this.gravity;
+                this.rotation += this.rotationSpeed;
+                this.life -= this.decay;
+                this.vx *= 0.98;
+                this.size *= 0.99;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                
+                ctx.beginPath();
+                ctx.moveTo(-this.size/2, -this.size/3);
+                ctx.lineTo(this.size/3, -this.size/2);
+                ctx.lineTo(this.size/2, this.size/4);
+                ctx.lineTo(-this.size/4, this.size/2);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15;
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.015;
+                this.color = color;
+                this.size = Math.random() * 8 + 3;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                this.size *= 0.98;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        
+        // 爆発エフェクト生成
+        function createExplosion(x, y, color, isCorrect) {
+            if (isCorrect) {
+                for (let i = 0; i < 25; i++) {
+                    shatterFragments.push(new ShatterFragment(x, y, color));
+                }
+                for (let i = 0; i < 30; i++) {
+                    particles.push(new Particle(x, y, '#ffff00'));
+                }
+            } else {
+                for (let i = 0; i < 15; i++) {
+                    particles.push(new Particle(x, y, '#ff6b9d'));
+                }
+            }
+        }
+        
+        // 美しい背景描画
+        function drawBackground() {
+            const displayWidth = parseFloat(canvas.style.width);
+            const displayHeight = parseFloat(canvas.style.height);
+            
+            const gradient = ctx.createRadialGradient(
+                displayWidth / 2, displayHeight / 2, 0,
+                displayWidth / 2, displayHeight / 2, displayWidth * 0.8
+            );
+            
+            const hue1 = (time * 0.1) % 360;
+            const hue2 = (time * 0.08 + 120) % 360;
+            const hue3 = (time * 0.12 + 240) % 360;
+            
+            gradient.addColorStop(0, `hsla(${hue1}, 60%, 85%, 0.9)`);
+            gradient.addColorStop(0.4, `hsla(${hue2}, 50%, 75%, 0.8)`);
+            gradient.addColorStop(0.8, `hsla(${hue3}, 55%, 65%, 0.7)`);
+            gradient.addColorStop(1, `hsla(${hue1}, 40%, 55%, 0.6)`);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, displayWidth, displayHeight);
+            
+            // キラキラエフェクト
+            for (let i = 0; i < 40; i++) {
+                const x = (Math.sin(time * 0.01 + i) * 0.5 + 0.5) * displayWidth;
+                const y = (Math.cos(time * 0.008 + i * 1.3) * 0.5 + 0.5) * displayHeight;
+                const size = Math.sin(time * 0.05 + i) * 2 + 2;
+                const alpha = Math.sin(time * 0.03 + i) * 0.3 + 0.2;
+                
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = `hsl(${(time + i * 20) % 360}, 80%, 90%)`;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        
+        // 美しく大きなクリスタル描画
+        function drawCrystals() {
+            crystals.forEach(crystal => {
+                if (!crystal.isVisible) return;
+                
+                crystal.glow += 0.02;
+                crystal.sparkleTimer += 1;
+                crystal.pulsePhase += 0.04;
+                
+                const pulse = Math.sin(crystal.pulsePhase) * 0.08 + 1;
+                const sparkle = Math.sin(crystal.sparkleTimer * 0.08) * 0.3 + 0.7;
+                const hoverScale = crystal.isHovered ? 1.12 : 1;
+                const dragScale = crystal.isDragging ? 1.2 : 1;
+                const totalScale = hoverScale * dragScale;
+                
+                ctx.save();
+                
+                // 外側のオーラ
+                const auraRadius = crystal.radius * 2.6 * totalScale;
+                const auraGradient = ctx.createRadialGradient(
+                    crystal.x, crystal.y, 0,
+                    crystal.x, crystal.y, auraRadius
+                );
+                const auraAlpha = crystal.isDragging ? 0.7 : 0.4;
+                auraGradient.addColorStop(0, `hsla(${crystal.hue}, ${crystal.saturation}%, ${crystal.lightness + 20}%, ${auraAlpha})`);
+                auraGradient.addColorStop(0.7, `hsla(${crystal.hue}, ${crystal.saturation}%, ${crystal.lightness}%, ${auraAlpha * 0.3})`);
+                auraGradient.addColorStop(1, `hsla(${crystal.hue}, ${crystal.saturation}%, ${crystal.lightness}%, 0)`);
+                
+                ctx.fillStyle = auraGradient;
+                ctx.beginPath();
+                ctx.arc(crystal.x, crystal.y, auraRadius * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // メインクリスタル
+                const crystalRadius = crystal.radius * totalScale;
+                const crystalGradient = ctx.createRadialGradient(
+                    crystal.x - crystalRadius * 0.35, 
+                    crystal.y - crystalRadius * 0.35, 0,
+                    crystal.x, crystal.y, crystalRadius
+                );
+                
+                crystalGradient.addColorStop(0, `hsla(0, 0%, 100%, 0.9)`);
+                crystalGradient.addColorStop(0.2, `hsl(${crystal.hue}, ${crystal.saturation}%, ${crystal.lightness + 25}%)`);
+                crystalGradient.addColorStop(0.5, `hsl(${crystal.hue}, ${crystal.saturation}%, ${crystal.lightness}%)`);
+                crystalGradient.addColorStop(0.8, `hsl(${crystal.hue}, ${crystal.saturation - 10}%, ${crystal.lightness - 15}%)`);
+                crystalGradient.addColorStop(1, `hsl(${crystal.hue}, ${crystal.saturation - 20}%, ${crystal.lightness - 30}%)`);
+                
+                ctx.fillStyle = crystalGradient;
+                ctx.shadowBlur = 25 * sparkle * totalScale;
+                ctx.shadowColor = `hsl(${crystal.hue}, ${crystal.saturation}%, ${crystal.lightness}%)`;
+                
+                ctx.beginPath();
+                ctx.arc(crystal.x, crystal.y, crystalRadius * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ハイライト
+                const highlightGradient = ctx.createRadialGradient(
+                    crystal.x - crystalRadius * 0.3, 
+                    crystal.y - crystalRadius * 0.3, 0,
+                    crystal.x - crystalRadius * 0.3, 
+                    crystal.y - crystalRadius * 0.3, 
+                    crystalRadius * 0.6
+                );
+                highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+                highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                
+                ctx.fillStyle = highlightGradient;
+                ctx.beginPath();
+                ctx.arc(
+                    crystal.x - crystalRadius * 0.3, 
+                    crystal.y - crystalRadius * 0.3, 
+                    crystalRadius * 0.4, 0, Math.PI * 2
+                );
+                ctx.fill();
+                
+                // 英語テキスト（大きく美しく）
+                ctx.fillStyle = '#2d3436';
+                const displayWidth = parseFloat(canvas.style.width);
+                const baseFontSize = Math.min(displayWidth * 0.055, crystal.radius * 0.75);
+                const fontSize = Math.max(16, baseFontSize * totalScale);
+                
+                ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 1;
+                
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                const displayWord = crystal.word === 'April' ? crystal.word : crystal.word.toLowerCase();
+                const lines = splitWordIntoLines(displayWord, 11);
+                
+                if (lines.length === 1) {
+                    ctx.fillText(lines[0], crystal.x, crystal.y);
+                } else {
+                    ctx.fillText(lines[0], crystal.x, crystal.y - fontSize * 0.35);
+                    ctx.fillText(lines[1], crystal.x, crystal.y + fontSize * 0.35);
+                }
+                
+                ctx.restore();
+            });
+        }
+        
+        // エフェクト描画
+        function drawEffects() {
+            particles = particles.filter(particle => {
+                particle.update();
+                if (particle.life > 0) {
+                    particle.draw();
+                    return true;
+                }
+                return false;
+            });
+            
+            shatterFragments = shatterFragments.filter(fragment => {
+                fragment.update();
+                if (fragment.life > 0) {
+                    fragment.draw();
+                    return true;
+                }
+                return false;
+            });
+        }
+        
+        // タッチ/マウス処理
+        function getEventPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+            
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+        
+        function handleStart(e) {
+            e.preventDefault();
+            initAudioContext();
+            
+            if (gameState !== 'playing') return;
+            
+            const pos = getEventPos(e);
+            dragStartX = pos.x;
+            dragStartY = pos.y;
+            isDragging = false;
+            
+            for (let crystal of crystals) {
+                if (!crystal.isVisible) continue;
+                
+                const dx = pos.x - crystal.x;
+                const dy = pos.y - crystal.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                const touchRadius = crystal.radius * 1.3;
+                
+                if (distance < touchRadius) {
+                    draggedCrystal = crystal;
+                    crystal.isDragging = true;
+                    break;
+                }
+            }
+        }
+        
+        function handleMove(e) {
+            e.preventDefault();
+            
+            if (gameState !== 'playing') return;
+            
+            const pos = getEventPos(e);
+            
+            if (draggedCrystal) {
+                const dx = pos.x - dragStartX;
+                const dy = pos.y - dragStartY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > dragThreshold) {
+                    isDragging = true;
+                    document.body.classList.add('dragging');
+                    
+                    draggedCrystal.x = pos.x;
+                    draggedCrystal.y = pos.y;
+                    
+                    keepCrystalInBounds(draggedCrystal);
+                }
+            }
+            
+            if (window.innerWidth >= 768) {
+                crystals.forEach(crystal => {
+                    if (!crystal.isVisible) return;
+                    
+                    const dx = pos.x - crystal.x;
+                    const dy = pos.y - crystal.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    crystal.isHovered = distance < crystal.radius;
+                });
+            }
+        }
+        
+        function handleEnd(e) {
+            e.preventDefault();
+            
+            if (gameState !== 'playing') return;
+            
+            document.body.classList.remove('dragging');
+            
+            if (draggedCrystal) {
+                draggedCrystal.isDragging = false;
+                
+                if (!isDragging) {
+                    handleCrystalTap(draggedCrystal);
+                }
+            }
+            
+            draggedCrystal = null;
+            isDragging = false;
+        }
+        
+        function handleCrystalTap(crystal) {
+            speakEnglish(crystal.word);
+            
+            const isCorrect = crystal.word === currentQuestion.word;
+            totalAnswers++;
+            
+            if (isCorrect) {
+                correctAnswers++;
+                score += currentScoreValue;
+                
+                playCorrectGlassBreakSound();
+                crystal.isVisible = false;
+            } else {
+                playIncorrectSound();
+            }
+            
+            createExplosion(
+                crystal.x, crystal.y, 
+                `hsl(${crystal.hue}, ${crystal.saturation}%, ${crystal.lightness}%)`,
+                isCorrect
+            );
+            
+            showFeedback(isCorrect, isCorrect ? currentScoreValue : 0);
+        }
+        
+        // UI更新（統合版）
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('correct').textContent = correctAnswers;
+            
+            const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            
+            const posNames = {
+                noun: '名詞',
+                adjective: '形容詞', 
+                verb: '動詞',
+                adverb: '副詞'
+            };
+            document.getElementById('currentPOS').textContent = posNames[currentPOS] || '-';
+            document.getElementById('questionNumber').textContent = currentQuestionIndex + 1;
+            document.getElementById('totalQuestions').textContent = selectedWords.length;
+            
+            const remainingCount = crystals.filter(c => c.isVisible).length;
+            document.getElementById('remainingCrystals').textContent = remainingCount;
+        }
+        
+        // ゲームループ
+        function gameLoop() {
+            time++;
+            
+            if (gameState === 'playing') {
+                ctx.clearRect(0, 0, parseFloat(canvas.style.width), parseFloat(canvas.style.height));
+                
+                drawBackground();
+                drawCrystals();
+                drawEffects();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // イベントリスナー
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('mouseleave', handleEnd);
+        
+        canvas.addEventListener('touchstart', handleStart);
+        canvas.addEventListener('touchmove', handleMove);
+        canvas.addEventListener('touchend', handleEnd);
+        canvas.addEventListener('touchcancel', handleEnd);
+        
+        window.addEventListener('resize', () => {
+            if (gameState === 'playing') {
+                setCanvasSize();
+            }
+        });
+        
+        // ゲーム初期化
+        window.addEventListener('load', () => {
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = () => {
+                    console.log('音声データ準備完了');
+                };
+            }
+            
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
