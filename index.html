@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>GOGEN CRYSTAL - 語源学習ゲーム</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            cursor: crosshair;
+            touch-action: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        canvas {
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            box-shadow: 0 0 20px #00ffff, inset 0 0 20px rgba(0, 255, 255, 0.1);
+            cursor: crosshair;
+            touch-action: none;
+            flex: 1;
+            max-width: 100vw;
+            max-height: calc(100vh - 140px);
+            /* 画像スケーリングを無効化して歪みを防ぐ */
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        .ui {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            color: #00ffff;
+            font-size: clamp(12px, 3vw, 14px);
+            text-shadow: 0 0 10px #00ffff;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #00ffff;
+        }
+        
+        .etymology-panel {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #ffff00;
+            color: #ffffff;
+            width: calc(100vw - 16px);
+            height: 120px;
+            text-shadow: 0 0 8px #ffff00;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+            overflow-y: auto;
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+        }
+        
+        .etymology-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .etymology-title {
+            color: #ffff00;
+            font-size: clamp(12px, 3.5vw, 14px);
+            font-weight: bold;
+        }
+        
+        .hint-button {
+            background: linear-gradient(45deg, #ff6b00, #ff9500);
+            border: 2px solid #ff6b00;
+            border-radius: 6px;
+            padding: 6px 12px;
+            color: #000;
+            font-size: clamp(10px, 2.5vw, 12px);
+            font-weight: bold;
+            cursor: pointer;
+            text-shadow: none;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            min-height: 32px;
+        }
+        
+        .hint-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 12px #ff6b00;
+        }
+        
+        .hint-button:disabled {
+            background: #666;
+            border-color: #666;
+            color: #aaa;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .etymology-content {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .etymology-text {
+            color: #ffffff;
+            font-size: clamp(10px, 2.8vw, 12px);
+            line-height: 1.4;
+        }
+        
+        .japanese-hint {
+            color: #00ff88;
+            font-size: clamp(11px, 3vw, 13px);
+            font-weight: bold;
+            padding: 6px 8px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 4px;
+            border-left: 3px solid #00ff88;
+        }
+        
+        .game-status {
+            position: absolute;
+            bottom: 130px;
+            left: 8px;
+            color: #00ffff;
+            font-size: clamp(10px, 2.5vw, 12px);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #00ffff;
+        }
+        
+        .score-display {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: #ffff00;
+            font-size: clamp(12px, 3vw, 14px);
+            text-shadow: 0 0 10px #ffff00;
+            z-index: 100;
+            text-align: right;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ffff00;
+        }
+        
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            color: #ffffff;
+            font-size: clamp(20px, 6vw, 28px);
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            text-shadow: 0 0 15px currentColor;
+            max-width: 90vw;
+            word-wrap: break-word;
+        }
+        
+        .feedback.correct {
+            border: 4px solid #00ff00;
+            color: #00ff00;
+        }
+        
+        .feedback.incorrect {
+            border: 4px solid #ff0000;
+            color: #ff0000;
+        }
+        
+        .word-selection-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        
+        .selection-title {
+            color: #00ffff;
+            font-size: clamp(24px, 6vw, 32px);
+            text-shadow: 0 0 20px #00ffff;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.3;
+        }
+        
+        .part-of-speech-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            max-width: 100%;
+            width: 100%;
+            padding: 0 10px;
+        }
+        
+        @media (max-width: 480px) {
+            .part-of-speech-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                max-width: 280px;
+            }
+        }
+        
+        .pos-button {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: 3px solid #00ffff;
+            border-radius: 12px;
+            padding: 20px 15px;
+            color: #000;
+            font-size: clamp(16px, 4vw, 20px);
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-shadow: 0 0 8px #ffffff;
+            box-shadow: 0 0 20px #00ffff;
+            transition: all 0.3s ease;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .pos-button:hover, .pos-button:active {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px #00ffff;
+            background: linear-gradient(45deg, #ffffff, #00ffff);
+        }
+        
+        .pos-description {
+            font-size: clamp(11px, 2.5vw, 12px);
+            margin-top: 8px;
+            color: #333;
+        }
+        
+        .dragging {
+            cursor: move !important;
+        }
+        
+        /* スマートフォン向け最適化 */
+        @media (max-height: 600px) {
+            .etymology-panel {
+                height: 100px;
+            }
+            
+            .game-status {
+                bottom: 110px;
+            }
+            
+            canvas {
+                max-height: calc(100vh - 120px);
+            }
+        }
+        
+        @media (max-height: 500px) {
+            .etymology-panel {
+                height: 80px;
+            }
+            
+            .game-status {
+                bottom: 90px;
+            }
+            
+            canvas {
+                max-height: calc(100vh - 100px);
+            }
+        }
+        
+        /* タッチデバイス向け調整 */
+        @media (hover: none) and (pointer: coarse) {
+            .pos-button:hover {
+                transform: none;
+                box-shadow: 0 0 20px #00ffff;
+                background: linear-gradient(45deg, #00ffff, #0080ff);
+            }
+            
+            .hint-button:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 品詞選択画面 -->
+    <div class="word-selection-screen" id="selectionScreen">
+        <div class="selection-title">
+            🔮 GOGEN CRYSTAL 🔮<br>
+            <span style="font-size: clamp(14px, 3.5vw, 18px);">学習する品詞を選択してください</span>
+        </div>
+        <div class="part-of-speech-grid">
+            <div class="pos-button" onclick="selectPartOfSpeech('noun')">
+                📚 名詞 (Noun)
+                <div class="pos-description">物や人の名前</div>
+            </div>
+            <div class="pos-button" onclick="selectPartOfSpeech('adjective')">
+                🌟 形容詞 (Adjective)
+                <div class="pos-description">性質や状態を表す</div>
+            </div>
+            <div class="pos-button" onclick="selectPartOfSpeech('verb')">
+                ⚡ 動詞 (Verb)
+                <div class="pos-description">動作や状態を表す</div>
+            </div>
+            <div class="pos-button" onclick="selectPartOfSpeech('adverb')">
+                🚀 副詞 (Adverb)
+                <div class="pos-description">動作や状態の様子</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui">
+        <div>正解: <span id="correct">0</span> / <span id="total">0</span></div>
+        <div>正解率: <span id="accuracy">-</span>%</div>
+    </div>
+    
+    <div class="score-display">
+        <div>スコア: <span id="score">0</span></div>
+        <div style="font-size: clamp(10px, 2.5vw, 12px);">現在: <span id="currentScore">100</span>点</div>
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="etymology-panel" id="etymologyPanel">
+            <div class="etymology-header">
+                <div class="etymology-title">🔍 この語源の単語は？</div>
+                <button class="hint-button" id="hintButton" onclick="showHint()">
+                    ヒント (50点)
+                </button>
+            </div>
+            <div class="etymology-content">
+                <div class="etymology-text" id="etymologyText"></div>
+                <div class="japanese-hint" id="japaneseHint" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="feedback" id="feedback"></div>
+    
+    <div class="game-status">
+        現在の品詞: <span id="currentPOS">-</span><br>
+        問題 <span id="questionNumber">1</span> / <span id="totalQuestions">0</span><br>
+        残り: <span id="remainingCrystals">0</span>個
+    </div>
+
+    <!-- 語源データファイルの読み込み -->
+    <script src="etymology-data.js"></script>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Web Audio API設定
+        let audioContext;
+        let masterGain;
+        let speechSynthesis = window.speechSynthesis;
+        let voiceVolume = 0.8;
+        let isMuted = false;
+        
+        // ゲーム状態
+        let gameState = 'selection';
+        let score = 0;
+        let correctAnswers = 0;
+        let totalAnswers = 0;
+        let currentPOS = '';
+        let selectedWords = [];
+        let currentQuestionIndex = 0;
+        let currentQuestion = null;
+        let crystals = [];
+        let shatterFragments = [];
+        
+        // ヒントシステム
+        let hintUsed = false;
+        let currentScoreValue = 100;
+        
+        // タッチ/マウス状態
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragThreshold = 5;
+        let draggedCrystal = null;
+        
+        // エフェクト配列
+        let particles = [];
+        let time = 0;
+        
+        // ゲーム設定
+        const CRYSTALS_COUNT = 15; // 表示するクリスタルの数
+        
+        // DPRとキャンバススケール管理
+        let devicePixelRatio = window.devicePixelRatio || 1;
+        let canvasScale = 1;
+        
+        // キャンバスサイズ設定（修正版）
+        function setCanvasSize() {
+            // 利用可能な画面サイズを計算
+            const availableHeight = window.innerHeight - 140; // パネルとUI分を引く
+            const availableWidth = window.innerWidth - 16; // 余白分を引く
+            
+            // 適切なアスペクト比を計算（16:10または4:3）
+            let targetWidth, targetHeight;
+            const aspectRatio = 16 / 10; // 基本アスペクト比
+            
+            if (availableWidth / availableHeight > aspectRatio) {
+                // 高さに合わせる
+                targetHeight = Math.min(availableHeight, 500);
+                targetWidth = targetHeight * aspectRatio;
+            } else {
+                // 幅に合わせる
+                targetWidth = Math.min(availableWidth, 800);
+                targetHeight = targetWidth / aspectRatio;
+            }
+            
+            // モバイルデバイスの場合の調整
+            if (window.innerWidth < 768) {
+                targetWidth = Math.min(availableWidth, window.innerWidth - 20);
+                targetHeight = Math.min(availableHeight, targetWidth * 0.8); // より正方形に近く
+            }
+            
+            // キャンバスの表示サイズを設定
+            canvas.style.width = targetWidth + 'px';
+            canvas.style.height = targetHeight + 'px';
+            
+            // 内部解像度を表示サイズと同じに設定（DPRは使わない）
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            
+            canvasScale = 1; // スケールファクターを1に固定
+            
+            // 既存のクリスタルがある場合は位置を調整
+            if (crystals.length > 0) {
+                crystals.forEach(crystal => {
+                    // 新しいキャンバスサイズに合わせて位置を調整
+                    crystal.x = Math.min(crystal.x, canvas.width - crystal.radius);
+                    crystal.y = Math.min(crystal.y, canvas.height - crystal.radius);
+                    crystal.x = Math.max(crystal.x, crystal.radius);
+                    crystal.y = Math.max(crystal.y, crystal.radius);
+                });
+            }
+            
+            console.log(`キャンバスサイズ設定: 表示=${targetWidth}x${targetHeight}, 内部=${canvas.width}x${canvas.height}`);
+        }
+        
+        // Web Audio API初期化
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.connect(audioContext.destination);
+                masterGain.gain.setValueAtTime(voiceVolume, audioContext.currentTime);
+            }
+        }
+        
+        // 配列をシャッフルする関数
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        // 品詞選択
+        function selectPartOfSpeech(pos) {
+            currentPOS = pos;
+            const allWords = Object.keys(etymologyDataByPOS[pos]).map(key => ({
+                word: key,
+                data: etymologyDataByPOS[pos][key]
+            }));
+            
+            // ランダムに選択してシャッフル
+            const shuffledWords = shuffleArray(allWords);
+            selectedWords = shuffledWords.slice(0, Math.min(CRYSTALS_COUNT, shuffledWords.length));
+            
+            document.getElementById('selectionScreen').style.display = 'none';
+            gameState = 'playing';
+            
+            setCanvasSize(); // キャンバスサイズ設定
+            resetGame();
+            createRandomCrystals();
+            startNewQuestion();
+            
+            updateUI();
+        }
+        
+        // ゲームリセット
+        function resetGame() {
+            score = 0;
+            correctAnswers = 0;
+            totalAnswers = 0;
+            currentQuestionIndex = 0;
+            particles = [];
+            shatterFragments = [];
+        }
+        
+        // ヒント表示
+        function showHint() {
+            if (hintUsed) return;
+            
+            hintUsed = true;
+            currentScoreValue = 50;
+            
+            // 日本語ヒント表示
+            const hintElement = document.getElementById('japaneseHint');
+            hintElement.textContent = `💡 答え: ${currentQuestion.data.japanese}`;
+            hintElement.style.display = 'block';
+            
+            // ボタンを無効化
+            const hintButton = document.getElementById('hintButton');
+            hintButton.disabled = true;
+            hintButton.textContent = 'ヒント使用済み';
+            
+            // 現在スコア更新
+            document.getElementById('currentScore').textContent = currentScoreValue;
+        }
+        
+        // ランダムクリスタル生成（修正版）
+        function createRandomCrystals() {
+            crystals = [];
+            
+            selectedWords.forEach((wordData, index) => {
+                let x, y, attempts = 0;
+                // クリスタルサイズを画面サイズに応じて調整
+                const baseRadius = Math.min(canvas.width, canvas.height) * 0.06; // キャンバスサイズの6%
+                let radius = baseRadius + Math.random() * (baseRadius * 0.4); // ±40%の変動
+                
+                do {
+                    x = Math.random() * (canvas.width - radius * 2) + radius;
+                    y = Math.random() * (canvas.height - radius * 2) + radius;
+                    attempts++;
+                } while (attempts < 200 && crystals.some(crystal => {
+                    const dx = crystal.x - x;
+                    const dy = crystal.y - y;
+                    const minDistance = crystal.radius + radius + 8;
+                    return Math.sqrt(dx * dx + dy * dy) < minDistance;
+                }));
+                
+                crystals.push({
+                    x: x,
+                    y: y,
+                    originalX: x,
+                    originalY: y,
+                    radius: radius,
+                    word: wordData.word,
+                    data: wordData.data,
+                    hue: (index * 25 + Math.random() * 50) % 360,
+                    glow: Math.random() * Math.PI * 2,
+                    sparkleTimer: Math.random() * 100,
+                    pulsePhase: Math.random() * Math.PI * 2,
+                    isHovered: false,
+                    isVisible: true,
+                    isDragging: false
+                });
+            });
+        }
+        
+        // 新しい問題開始
+        function startNewQuestion() {
+            if (currentQuestionIndex >= selectedWords.length) {
+                // 全問終了
+                showGameComplete();
+                return;
+            }
+            
+            const questionData = selectedWords[currentQuestionIndex];
+            currentQuestion = questionData;
+            
+            // ヒントシステムリセット
+            hintUsed = false;
+            currentScoreValue = 100;
+            
+            // 語源パネル更新
+            document.getElementById('etymologyText').textContent = questionData.data.etymology;
+            document.getElementById('japaneseHint').style.display = 'none';
+            
+            // ヒントボタンリセット
+            const hintButton = document.getElementById('hintButton');
+            hintButton.disabled = false;
+            hintButton.textContent = 'ヒント (50点)';
+            
+            // 現在スコア更新
+            document.getElementById('currentScore').textContent = currentScoreValue;
+        }
+        
+        // 文字列を2行に分割（改良版）
+        function splitWordIntoLines(word, maxLength) {
+            const actualMaxLength = window.innerWidth < 768 ? 6 : (maxLength || 8);
+            
+            if (word.length <= actualMaxLength) {
+                return [word];
+            }
+            
+            // ハイフンで分割できる場所を探す
+            const hyphenIndex = word.indexOf('-');
+            if (hyphenIndex > 0 && hyphenIndex < word.length - 1) {
+                return [word.substring(0, hyphenIndex + 1), word.substring(hyphenIndex + 1)];
+            }
+            
+            // 中央付近で分割
+            const midPoint = Math.floor(word.length / 2);
+            return [word.substring(0, midPoint) + '-', word.substring(midPoint)];
+        }
+        
+        // クリスタルの境界チェック
+        function keepCrystalInBounds(crystal) {
+            const margin = crystal.radius;
+            if (crystal.x < margin) crystal.x = margin;
+            if (crystal.x > canvas.width - margin) crystal.x = canvas.width - margin;
+            if (crystal.y < margin) crystal.y = margin;
+            if (crystal.y > canvas.height - margin) crystal.y = canvas.height - margin;
+        }
+        
+        // 正解時のガラス破砕音「パリーン！」
+        function playCorrectGlassBreakSound() {
+            if (!audioContext || isMuted) return;
+            
+            const now = audioContext.currentTime;
+            
+            // 高音のクラック音（より激しく）
+            for (let i = 0; i < 8; i++) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+                
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(2500 + i * 600 + Math.random() * 400, now);
+                osc.frequency.exponentialRampToValueAtTime(4500 + i * 800, now + 0.08);
+                
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(3000 + i * 500, now);
+                filter.Q.setValueAtTime(15, now);
+                
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.start(now + i * 0.01);
+                osc.stop(now + 0.4);
+            }
+            
+            // キラキラ音
+            for (let i = 0; i < 5; i++) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1500 + i * 300, now + i * 0.05);
+                
+                gain.gain.setValueAtTime(0.1, now + i * 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.3);
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.start(now + i * 0.05);
+                osc.stop(now + i * 0.05 + 0.3);
+            }
+        }
+        
+        // 不正解時の鈍い音「ボン」
+        function playIncorrectSound() {
+            if (!audioContext || isMuted) return;
+            
+            const now = audioContext.currentTime;
+            
+            // 低音の鈍い音
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            const filter = audioContext.createBiquadFilter();
+            
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, now);
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+            
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(400, now);
+            filter.Q.setValueAtTime(5, now);
+            
+            gain.gain.setValueAtTime(0.4, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+            
+            osc.start(now);
+            osc.stop(now + 0.5);
+        }
+        
+        // 改善されたネイティブ音声再生
+        function speakEnglish(text) {
+            if (isMuted || !speechSynthesis) return;
+            
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8;
+            utterance.pitch = 1.0;
+            utterance.volume = voiceVolume;
+            
+            // ネイティブ音声の優先順位を改善
+            const voices = speechSynthesis.getVoices();
+            
+            // 優先度の高い順でネイティブ音声を検索
+            const preferredVoices = [
+                // iOS Safari
+                voice => voice.name === 'Samantha' && voice.lang === 'en-US',
+                voice => voice.name === 'Alex' && voice.lang === 'en-US',
+                // macOS Safari
+                voice => voice.name === 'Daniel' && voice.lang.startsWith('en-GB'),
+                voice => voice.name === 'Karen' && voice.lang.startsWith('en-AU'),
+                // Chrome on various platforms
+                voice => voice.name.includes('Google US English') && voice.lang === 'en-US',
+                voice => voice.name.includes('Google UK English') && voice.lang === 'en-GB',
+                // Microsoft Edge
+                voice => voice.name.includes('Microsoft Zira') && voice.lang === 'en-US',
+                voice => voice.name.includes('Microsoft David') && voice.lang === 'en-US',
+                // Android Chrome
+                voice => voice.name.includes('English United States') && voice.lang === 'en-US',
+                // 一般的なネイティブ音声
+                voice => voice.lang === 'en-US' && voice.localService,
+                voice => voice.lang === 'en-GB' && voice.localService,
+                voice => voice.lang === 'en-AU' && voice.localService,
+                // フォールバック：任意の英語音声
+                voice => voice.lang.startsWith('en-US'),
+                voice => voice.lang.startsWith('en-GB'),
+                voice => voice.lang.startsWith('en'),
+            ];
+            
+            // 優先順位に従って音声を選択
+            let selectedVoice = null;
+            for (const voiceFilter of preferredVoices) {
+                selectedVoice = voices.find(voiceFilter);
+                if (selectedVoice) {
+                    console.log(`Selected voice: ${selectedVoice.name} (${selectedVoice.lang})`);
+                    break;
+                }
+            }
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            utterance.onstart = () => {
+                console.log(`Speaking: "${text}" with voice: ${utterance.voice ? utterance.voice.name : 'default'}`);
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+        
+        // フィードバック表示
+        function showFeedback(isCorrect, earnedScore) {
+            const feedback = document.getElementById('feedback');
+            feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            
+            if (isCorrect) {
+                feedback.innerHTML = `🎉 正解！ 🎉<br><span style="font-size: clamp(14px, 4vw, 18px);">+${earnedScore}点</span>`;
+            } else {
+                feedback.textContent = '❌ 不正解...';
+            }
+            
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+                if (isCorrect) {
+                    nextQuestion();
+                }
+            }, 1500);
+        }
+        
+        // 次の問題
+        function nextQuestion() {
+            currentQuestionIndex++;
+            startNewQuestion();
+            updateUI();
+        }
+        
+        // ゲーム完了
+        function showGameComplete() {
+            const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+            
+            const feedback = document.getElementById('feedback');
+            feedback.className = 'feedback correct';
+            feedback.innerHTML = `
+                🎊 全問完了！ 🎊<br>
+                <div style="font-size: clamp(14px, 4vw, 18px); margin-top: 15px;">
+                    正解率: ${accuracy}%<br>
+                    スコア: ${score}点
+                </div>
+            `;
+            feedback.style.display = 'block';
+            
+            setTimeout(() => {
+                feedback.style.display = 'none';
+                document.getElementById('selectionScreen').style.display = 'flex';
+                gameState = 'selection';
+            }, 4000);
+        }
+        
+        // 破片クラス
+        class ShatterFragment {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 20;
+                this.vy = (Math.random() - 0.5) * 20;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.3;
+                this.life = 1;
+                this.decay = Math.random() * 0.015 + 0.01;
+                this.color = color;
+                this.size = Math.random() * 15 + 5;
+                this.gravity = 0.5;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += this.gravity;
+                this.rotation += this.rotationSpeed;
+                this.life -= this.decay;
+                this.vx *= 0.98;
+                this.size *= 0.99;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                
+                // 不規則な破片の形
+                ctx.beginPath();
+                ctx.moveTo(-this.size/2, -this.size/3);
+                ctx.lineTo(this.size/3, -this.size/2);
+                ctx.lineTo(this.size/2, this.size/4);
+                ctx.lineTo(-this.size/4, this.size/2);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        // エフェクトクラス
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15;
+                this.life = 1;
+                this.decay = Math.random() * 0.02 + 0.015;
+                this.color = color;
+                this.size = Math.random() * 8 + 3;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                this.size *= 0.98;
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        
+        // 爆発エフェクト生成
+        function createExplosion(x, y, color, isCorrect) {
+            if (isCorrect) {
+                // 正解時：ガラス破片エフェクト
+                for (let i = 0; i < 25; i++) {
+                    shatterFragments.push(new ShatterFragment(x, y, color));
+                }
+                // キラキラエフェクト
+                for (let i = 0; i < 30; i++) {
+                    particles.push(new Particle(x, y, '#ffff00'));
+                }
+            } else {
+                // 不正解時：通常のパーティクル
+                for (let i = 0; i < 15; i++) {
+                    particles.push(new Particle(x, y, '#ff4444'));
+                }
+            }
+        }
+        
+        // 背景描画
+        function drawBackground() {
+            const gradient = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, canvas.width
+            );
+            
+            const hue1 = (time * 0.2) % 360;
+            const hue2 = (time * 0.15 + 180) % 360;
+            
+            gradient.addColorStop(0, `hsl(${hue1}, 25%, 12%)`);
+            gradient.addColorStop(0.7, `hsl(${hue2}, 15%, 6%)`);
+            gradient.addColorStop(1, `hsl(${hue1 + 120}, 20%, 3%)`);
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // クリスタル描画（修正版 - 完全な円形を保証）
+        function drawCrystals() {
+            crystals.forEach(crystal => {
+                if (!crystal.isVisible) return;
+                
+                crystal.glow += 0.03;
+                crystal.sparkleTimer += 1;
+                crystal.pulsePhase += 0.05;
+                
+                const pulse = Math.sin(crystal.pulsePhase) * 0.15 + 1;
+                const sparkle = Math.sin(crystal.sparkleTimer * 0.1) * 0.4 + 0.6;
+                const hoverScale = crystal.isHovered ? 1.1 : 1;
+                const dragScale = crystal.isDragging ? 1.2 : 1;
+                const totalScale = hoverScale * dragScale;
+                
+                ctx.save();
+                
+                // キャンバスが歪んでいても正円を保つためのスケール調整
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // 変形をリセット
+                
+                // 外側のオーラ（ドラッグ時は強く光る）
+                const auraRadius = crystal.radius * 2.5 * totalScale;
+                const auraGradient = ctx.createRadialGradient(
+                    crystal.x, crystal.y, 0,
+                    crystal.x, crystal.y, auraRadius
+                );
+                const auraAlpha = crystal.isDragging ? 0.6 : 0.4;
+                auraGradient.addColorStop(0, `hsla(${crystal.hue}, 80%, 60%, ${auraAlpha})`);
+                auraGradient.addColorStop(1, `hsla(${crystal.hue}, 80%, 60%, 0)`);
+                
+                ctx.fillStyle = auraGradient;
+                ctx.beginPath();
+                ctx.arc(crystal.x, crystal.y, auraRadius * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // メインクリスタル（完全な円形）
+                const crystalRadius = crystal.radius * totalScale;
+                const crystalGradient = ctx.createRadialGradient(
+                    crystal.x - crystalRadius * 0.3, 
+                    crystal.y - crystalRadius * 0.3, 0,
+                    crystal.x, crystal.y, crystalRadius
+                );
+                crystalGradient.addColorStop(0, '#ffffff');
+                crystalGradient.addColorStop(0.3, `hsl(${crystal.hue}, 90%, 75%)`);
+                crystalGradient.addColorStop(0.7, `hsl(${crystal.hue}, 85%, 55%)`);
+                crystalGradient.addColorStop(1, `hsl(${crystal.hue}, 75%, 35%)`);
+                
+                ctx.fillStyle = crystalGradient;
+                ctx.shadowBlur = 25 * sparkle * totalScale;
+                ctx.shadowColor = `hsl(${crystal.hue}, 80%, 65%)`;
+                
+                ctx.beginPath();
+                ctx.arc(crystal.x, crystal.y, crystalRadius * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ハイライト（完全な円形）
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.beginPath();
+                ctx.arc(
+                    crystal.x - crystalRadius * 0.3, 
+                    crystal.y - crystalRadius * 0.3, 
+                    crystalRadius * 0.35, 0, Math.PI * 2
+                );
+                ctx.fill();
+                
+                // 英語テキスト（フォントサイズをキャンバスサイズに応じて調整）
+                ctx.fillStyle = '#000000';
+                const baseFontSize = Math.min(canvas.width, canvas.height) * 0.025; // キャンバスサイズの2.5%
+                const fontSize = Math.max(10, baseFontSize * totalScale);
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowBlur = 2;
+                ctx.shadowColor = '#ffffff';
+                
+                const displayWord = crystal.word === 'April' ? crystal.word : crystal.word.toLowerCase();
+                const lines = splitWordIntoLines(displayWord);
+                if (lines.length === 1) {
+                    ctx.fillText(lines[0], crystal.x, crystal.y);
+                } else {
+                    ctx.fillText(lines[0], crystal.x, crystal.y - fontSize * 0.4);
+                    ctx.fillText(lines[1], crystal.x, crystal.y + fontSize * 0.4);
+                }
+                
+                ctx.restore();
+            });
+        }
+        
+        // エフェクト描画
+        function drawEffects() {
+            // パーティクル
+            particles = particles.filter(particle => {
+                particle.update();
+                if (particle.life > 0) {
+                    particle.draw();
+                    return true;
+                }
+                return false;
+            });
+            
+            // ガラス破片
+            shatterFragments = shatterFragments.filter(fragment => {
+                fragment.update();
+                if (fragment.life > 0) {
+                    fragment.draw();
+                    return true;
+                }
+                return false;
+            });
+        }
+        
+        // タッチ/マウス処理（修正版）
+        function getEventPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+            
+            // 表示サイズに対する座標を内部座標に変換
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+        
+        function handleStart(e) {
+            e.preventDefault();
+            initAudioContext();
+            
+            if (gameState !== 'playing') return;
+            
+            const pos = getEventPos(e);
+            dragStartX = pos.x;
+            dragStartY = pos.y;
+            isDragging = false;
+            
+            // クリスタル選択（タッチ領域を拡大）
+            for (let crystal of crystals) {
+                if (!crystal.isVisible) continue;
+                
+                const dx = pos.x - crystal.x;
+                const dy = pos.y - crystal.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // タッチ領域を適切に調整
+                const touchRadius = crystal.radius * 1.3;
+                
+                if (distance < touchRadius) {
+                    draggedCrystal = crystal;
+                    crystal.isDragging = true;
+                    break;
+                }
+            }
+        }
+        
+        function handleMove(e) {
+            e.preventDefault();
+            
+            if (gameState !== 'playing') return;
+            
+            const pos = getEventPos(e);
+            
+            if (draggedCrystal) {
+                const dx = pos.x - dragStartX;
+                const dy = pos.y - dragStartY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > dragThreshold) {
+                    isDragging = true;
+                    document.body.classList.add('dragging');
+                    
+                    // ドラッグ中の移動
+                    draggedCrystal.x = pos.x;
+                    draggedCrystal.y = pos.y;
+                    
+                    // 境界チェック
+                    keepCrystalInBounds(draggedCrystal);
+                }
+            }
+            
+            // ホバー処理（デスクトップのみ）
+            if (window.innerWidth >= 768) {
+                crystals.forEach(crystal => {
+                    if (!crystal.isVisible) return;
+                    
+                    const dx = pos.x - crystal.x;
+                    const dy = pos.y - crystal.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    crystal.isHovered = distance < crystal.radius;
+                });
+            }
+        }
+        
+        function handleEnd(e) {
+            e.preventDefault();
+            
+            if (gameState !== 'playing') return;
+            
+            document.body.classList.remove('dragging');
+            
+            if (draggedCrystal) {
+                draggedCrystal.isDragging = false;
+                
+                if (!isDragging) {
+                    // タップ処理
+                    handleCrystalTap(draggedCrystal);
+                }
+            }
+            
+            draggedCrystal = null;
+            isDragging = false;
+        }
+        
+        function handleCrystalTap(crystal) {
+            // 英語発音
+            speakEnglish(crystal.word);
+            
+            // 正解判定
+            const isCorrect = crystal.word === currentQuestion.word;
+            totalAnswers++;
+            
+            if (isCorrect) {
+                correctAnswers++;
+                score += currentScoreValue;
+                
+                // 正解音とエフェクト
+                playCorrectGlassBreakSound();
+                
+                // クリスタルを非表示に
+                crystal.isVisible = false;
+            } else {
+                // 不正解音
+                playIncorrectSound();
+            }
+            
+            // エフェクト生成
+            createExplosion(
+                crystal.x, crystal.y, 
+                `hsl(${crystal.hue}, 80%, 65%)`,
+                isCorrect
+            );
+            
+            // フィードバック表示
+            showFeedback(isCorrect, isCorrect ? currentScoreValue : 0);
+        }
+        
+        // UI更新
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('correct').textContent = correctAnswers;
+            document.getElementById('total').textContent = totalAnswers;
+            
+            const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+            document.getElementById('accuracy').textContent = accuracy;
+            
+            const posNames = {
+                noun: '名詞',
+                adjective: '形容詞', 
+                verb: '動詞',
+                adverb: '副詞'
+            };
+            document.getElementById('currentPOS').textContent = posNames[currentPOS] || '-';
+            document.getElementById('questionNumber').textContent = currentQuestionIndex + 1;
+            document.getElementById('totalQuestions').textContent = selectedWords.length;
+            
+            const remainingCount = crystals.filter(c => c.isVisible).length;
+            document.getElementById('remainingCrystals').textContent = remainingCount;
+        }
+        
+        // ゲームループ
+        function gameLoop() {
+            time++;
+            
+            if (gameState === 'playing') {
+                drawBackground();
+                drawCrystals();
+                drawEffects();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // イベントリスナー
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('mouseleave', handleEnd);
+        
+        canvas.addEventListener('touchstart', handleStart);
+        canvas.addEventListener('touchmove', handleMove);
+        canvas.addEventListener('touchend', handleEnd);
+        canvas.addEventListener('touchcancel', handleEnd);
+        
+        // リサイズイベント
+        window.addEventListener('resize', () => {
+            if (gameState === 'playing') {
+                setCanvasSize();
+            }
+        });
+        
+        // ゲーム初期化
+        window.addEventListener('load', () => {
+            // 音声準備
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = () => {
+                    console.log('音声データ準備完了。利用可能な音声数:', speechSynthesis.getVoices().length);
+                    // デバッグ用：利用可能な英語音声をログ出力
+                    const voices = speechSynthesis.getVoices();
+                    const englishVoices = voices.filter(voice => voice.lang.startsWith('en'));
+                    console.log('英語音声一覧:', englishVoices.map(v => `${v.name} (${v.lang})`));
+                };
+            }
+            
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
